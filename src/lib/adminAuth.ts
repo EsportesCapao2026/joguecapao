@@ -6,16 +6,23 @@ export const ADMIN_ROLE_COOKIE_NAME = "joguecapao_admin_role";
 
 export type AdminRole = "admin" | "master";
 
+export function limparSegredoAdmin(valor: unknown) {
+  return String(valor ?? "")
+    .trim()
+    .replace(/^["']|["']$/g, "");
+}
+
 export function isAdminSessionValid(cookieValue?: string) {
   if (!cookieValue) return false;
 
-  const sessionSecret = process.env.SESSION_SECRET;
+  const sessionSecret = limparSegredoAdmin(process.env.SESSION_SECRET);
+  const sessionCookie = limparSegredoAdmin(cookieValue);
 
   if (!sessionSecret) {
     return false;
   }
 
-  return cookieValue === sessionSecret;
+  return sessionCookie === sessionSecret;
 }
 
 export function getAdminRole(roleCookie?: string): AdminRole {
@@ -25,6 +32,15 @@ export function getAdminRole(roleCookie?: string): AdminRole {
 
 export function isMasterRole(roleCookie?: string) {
   return roleCookie === "master";
+}
+
+export async function exigirAdmin() {
+  const cookieStore = await cookies();
+  const sessaoValid = isAdminSessionValid(cookieStore.get(ADMIN_COOKIE_NAME)?.value);
+
+  if (!sessaoValid) {
+    redirect("/admin?bloqueado=1");
+  }
 }
 
 export async function exigirMaster() {

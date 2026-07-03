@@ -1,5 +1,5 @@
 import { Settings, ShieldCheck, Key, Cpu, Database, AlertCircle, CheckCircle2 } from "lucide-react";
-import { obterRoleAtual } from "@/lib/adminAuth";
+import { exigirAdmin, obterRoleAtual } from "@/lib/adminAuth";
 import { atualizarSenhaAdmin, atualizarSenhaMaster } from "./actions";
 
 type SearchParams = Promise<{
@@ -13,6 +13,8 @@ export default async function AdminConfiguracoesPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await exigirAdmin();
+
   const params = await searchParams;
   const role = await obterRoleAtual();
   const isMaster = role === "master";

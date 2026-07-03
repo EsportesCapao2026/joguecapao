@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import {
   alterarStatusCbjd,
   cadastrarRegraMunicipal,
@@ -42,6 +43,8 @@ export default async function AdminRegrasPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await exigirAdmin();
+
   const params = await searchParams;
   const supabase = getSupabaseAdmin();
 

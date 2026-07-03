@@ -6,6 +6,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import { AdminJogoForm } from "@/components/admin/jogos/AdminJogoForm";
 import { AdminResultadoJogoForm } from "@/components/admin/jogos/AdminResultadoJogoForm";
 import AdminJogoActions from "@/components/admin/jogos/AdminJogoActions";
@@ -111,6 +112,8 @@ export default async function AdminJogosPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await exigirAdmin();
+
   const params = await searchParams;
   const supabase = getSupabaseAdmin();
 

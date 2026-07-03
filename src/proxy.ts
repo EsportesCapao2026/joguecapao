@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_COOKIE_NAME, isAdminSessionValid } from "@/lib/adminAuth";
+
+const ADMIN_COOKIE_NAME = "joguecapao_admin_session";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -11,16 +12,20 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  const hasSessionCookie = Boolean(request.cookies.get(ADMIN_COOKIE_NAME)?.value);
 
-  if (!isAdminSessionValid(session)) {
+  if (!hasSessionCookie) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin";
     url.searchParams.set("bloqueado", "1");
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.headers.set("Cache-Control", "no-store, max-age=0");
+    return response;
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set("Cache-Control", "no-store, max-age=0");
+  return response;
 }
 
 export const config = {

@@ -1,5 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import AdminClubesControl from "@/components/admin/clubes/AdminClubesControl";
 
 type Inscricao = {
@@ -54,6 +55,8 @@ export default async function AdminClubesPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await exigirAdmin();
+
   const params = await searchParams;
   const supabase = getSupabaseAdmin();
 

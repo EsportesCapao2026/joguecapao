@@ -2,13 +2,15 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_COOKIE_NAME, ADMIN_ROLE_COOKIE_NAME } from "@/lib/adminAuth";
+import {
+  ADMIN_COOKIE_NAME,
+  ADMIN_ROLE_COOKIE_NAME,
+  limparSegredoAdmin,
+} from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 function limparSenha(valor: unknown) {
-  return String(valor ?? "")
-    .trim()
-    .replace(/^["']|["']$/g, "");
+  return limparSegredoAdmin(valor);
 }
 
 export async function loginAdmin(formData: FormData) {

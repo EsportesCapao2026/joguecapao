@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import { ArrowLeft, Clock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,6 +14,8 @@ export default async function AdminJogoTempoRealPage({
 }: {
   params: Params;
 }) {
+  await exigirAdmin();
+
   const { id } = await params;
   const supabase = getSupabaseAdmin();
 
@@ -59,6 +62,7 @@ export default async function AdminJogoTempoRealPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Link
           href="/admin/jogos"
+          prefetch={false}
           className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-bold text-white transition hover:bg-white/[0.1]"
         >
           <ArrowLeft size={16} />

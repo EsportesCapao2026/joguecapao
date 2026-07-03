@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import {
   alterarStatusCampeonato,
   cadastrarCampeonato,
@@ -84,6 +85,8 @@ export default async function AdminCampeonatosPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await exigirAdmin();
+
   const params = await searchParams;
   const supabase = getSupabaseAdmin();
 

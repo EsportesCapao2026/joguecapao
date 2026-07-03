@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { exigirAdmin } from "@/lib/adminAuth";
 import {
   BarChart3,
   CalendarDays,
@@ -21,7 +22,9 @@ const cards = [
   ["Configurações", "Ajustes gerais do sistema administrativo.", "/admin/configuracoes", Settings],
 ];
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  await exigirAdmin();
+
   return (
     <div className="space-y-6 text-white">
       <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.07] shadow-2xl backdrop-blur">
@@ -49,6 +52,7 @@ export default function AdminDashboardPage() {
             <Link
               key={String(href)}
               href={String(href)}
+              prefetch={false}
               className="group rounded-[2rem] border border-white/10 bg-white/[0.07] p-6 shadow-2xl backdrop-blur transition hover:scale-[1.01] hover:bg-white/[0.11]"
             >
               <div className="grid h-14 w-14 place-items-center rounded-2xl border border-yellow-300/25 bg-yellow-300/10 text-yellow-200">

@@ -9,6 +9,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import { GerarPdfInscricaoButton } from "@/components/admin/inscricoes/GerarPdfInscricaoButton";
 import {
   alterarStatusInscricao,
@@ -90,6 +91,8 @@ export default async function AdminInscricoesPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await exigirAdmin();
+
   const params = await searchParams;
   const supabase = getSupabaseAdmin();
 

@@ -1,5 +1,6 @@
 import React from "react";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import { redirect } from "next/navigation";
 import PrintButton from "@/components/admin/PrintButton";
 import { parseJogoObservacoes } from "@/lib/tempoReal";
@@ -9,6 +10,8 @@ interface PageProps {
 }
 
 export default async function SumulaPage({ params }: PageProps) {
+  await exigirAdmin();
+
   const { id } = await params;
   const supabase = getSupabaseAdmin();
 

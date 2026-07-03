@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import { AdminPunicaoForm } from "@/components/admin/punicoes/AdminPunicaoForm";
 import { AdminPunicaoActions } from "@/components/admin/punicoes/AdminPunicaoActions";
 import { removerPunicao } from "./actions";
@@ -78,6 +79,8 @@ export default async function AdminPunicoesPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await exigirAdmin();
+
   const params = await searchParams;
   const supabase = getSupabaseAdmin();
 

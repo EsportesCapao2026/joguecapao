@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import { BarChart3, CalendarDays, Clock, MapPin, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -31,6 +32,8 @@ function formatarData(data: string | null) {
 }
 
 export default async function AdminResultadosPage() {
+  await exigirAdmin();
+
   const supabase = getSupabaseAdmin();
 
   // Buscar campeonatos para mapear nomes
@@ -72,6 +75,7 @@ export default async function AdminResultadosPage() {
       <div className="flex justify-end">
         <Link
           href="/admin/jogos"
+          prefetch={false}
           className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-yellow-300 via-green-400 to-blue-500 px-5 py-4 text-xs font-black uppercase text-slate-950 shadow-lg transition hover:scale-[1.01]"
         >
           Lançar Novos Resultados

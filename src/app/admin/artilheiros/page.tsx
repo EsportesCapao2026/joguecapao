@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import { AdminArtilheiroForm } from "@/components/admin/artilheiros/AdminArtilheiroForm";
 import { AdminArtilheiroList } from "@/components/admin/artilheiros/AdminArtilheiroList";
 import { Medal } from "lucide-react";
@@ -61,6 +62,8 @@ export default async function AdminArtilheirosPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await exigirAdmin();
+
   const params = await searchParams;
   const supabase = getSupabaseAdmin();
 

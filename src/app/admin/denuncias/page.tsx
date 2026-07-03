@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { exigirAdmin } from "@/lib/adminAuth";
 import { ShieldAlert, Calendar, User, Phone, Trophy, FileText, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 import { julgarDenuncia } from "./actions";
 
@@ -54,6 +55,8 @@ export default async function AdminDenunciasPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await exigirAdmin();
+
   const params = await searchParams;
   const supabase = getSupabaseAdmin();
 

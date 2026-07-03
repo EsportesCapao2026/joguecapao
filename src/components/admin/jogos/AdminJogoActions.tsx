@@ -94,6 +94,7 @@ export default function AdminJogoActions({
       {podeControlarEventos && (
         <Link
           href={`/admin/jogos/tempo-real/${jogo.id}`}
+          prefetch={false}
           className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-[0.12em] transition hover:scale-[1.01] ${isLive ? "bg-red-500 text-slate-950 animate-pulse" : "border border-emerald-300/30 bg-emerald-500/10 text-emerald-100"}`}
         >
           <Clock size={16} />
@@ -113,6 +114,7 @@ export default function AdminJogoActions({
       {/* Botão de Súmula / PDF (Sempre visível) */}
       <Link
         href={`/admin/jogos/sumula/${jogo.id}`}
+        prefetch={false}
         target="_blank"
         className="inline-flex items-center gap-2 rounded-2xl border border-blue-400/30 bg-blue-500/10 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-blue-200 transition hover:bg-blue-500 hover:text-slate-950"
       >

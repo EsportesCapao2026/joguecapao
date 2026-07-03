@@ -64,6 +64,7 @@ export function AdminSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={[
                   "group flex items-center gap-4 rounded-2xl px-5 py-4 text-base font-black transition",
                   ativo
@@ -87,6 +88,7 @@ export function AdminSidebar() {
         <div className="mt-4 border-t border-white/10 pt-4">
           <Link
             href="/admin/logout"
+            prefetch={false}
             className="flex items-center gap-4 rounded-2xl px-5 py-4 text-base font-black text-red-100/80 transition hover:bg-red-500/15 hover:text-red-100"
           >
             <LogOut size={23} />
