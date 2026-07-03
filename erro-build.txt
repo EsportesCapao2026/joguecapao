@@ -1,0 +1,28 @@
+
+> joguecapao@0.1.0 build
+> next build
+
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.9s
+  Running TypeScript ...
+Failed to type check.
+
+./backups-admin-layout/components-admin-antes-padronizacao-visual/inscricoes/GerarPdfInscricaoButton.tsx:514:28
+Type error: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BlobPart'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+
+  [90m512 |[0m     [36mconst[0m bytesFinais = [36mawait[0m pdf.save();
+  [90m513 |[0m
+[31m[1m>[0m [90m514 |[0m     [36mconst[0m blob = [36mnew[0m [33mBlob[0m([bytesFinais], {
+  [90m    |[0m                            [31m[1m^[0m
+  [90m515 |[0m       [36mtype[0m: [32m"application/pdf"[0m,
+  [90m516 |[0m     });
+  [90m517 |[0m
+Next.js build worker exited with code: 1 and signal: null

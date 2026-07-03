@@ -1,0 +1,297 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Fundo global padrão do Jogue Capão */
+html,
+body {
+  min-height: 100%;
+  background: #020617;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -30;
+  background-image: url("/bg-estadio.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  background:
+    linear-gradient(to bottom, rgba(2, 6, 23, 0.18), rgba(2, 6, 23, 0.48), rgba(2, 6, 23, 0.78)),
+    linear-gradient(to right, rgba(2, 6, 23, 0.35), rgba(2, 6, 23, 0.08), rgba(30, 64, 175, 0.25));
+  pointer-events: none;
+}
+
+/* Evita que páginas principais cubram totalmente o fundo */
+main.bg-slate-950 {
+  background-color: transparent !important;
+}
+
+/* AJUSTE DEFINITIVO — Fundo global visível do Jogue Capão */
+html {
+  min-height: 100%;
+  background: #020617;
+}
+
+body {
+  min-height: 100%;
+  background-image:
+    linear-gradient(to bottom, rgba(2, 6, 23, 0.20), rgba(2, 6, 23, 0.45), rgba(2, 6, 23, 0.72)),
+    linear-gradient(to right, rgba(2, 6, 23, 0.30), rgba(2, 6, 23, 0.05), rgba(30, 64, 175, 0.22)),
+    url("/bg-estadio.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+}
+
+/* Desativa o fundo antigo por pseudo-elemento */
+body::before,
+body::after {
+  display: none !important;
+}
+
+/* Impede que as páginas cubram o estádio */
+main,
+main.bg-slate-950,
+.min-h-screen.bg-slate-950 {
+  background: transparent !important;
+}
+
+/* Camadas de fundo internas das páginas ficam mais leves */
+.fixed.inset-0.-z-10,
+.absolute.inset-0 {
+  opacity: 0.75;
+}
+
+/* Cards continuam legíveis, mas sem apagar totalmente o fundo */
+.bg-white\/\[0\.07\] {
+  background-color: rgba(255, 255, 255, 0.075) !important;
+}
+
+.bg-slate-950\/60 {
+  background-color: rgba(2, 6, 23, 0.46) !important;
+}
+
+.bg-slate-950\/65 {
+  background-color: rgba(2, 6, 23, 0.50) !important;
+}
+
+.bg-black\/25 {
+  background-color: rgba(0, 0, 0, 0.20) !important;
+}
+
+.bg-black\/30 {
+  background-color: rgba(0, 0, 0, 0.24) !important;
+}
+
+
+/* =========================================================
+   PADRÃO VISUAL GLOBAL — JOGUE CAPÃO
+   Aplica identidade visual mais próxima da página inicial
+   ========================================================= */
+
+/* Fundo geral do sistema */
+html {
+  min-height: 100%;
+  background: #020617;
+}
+
+body {
+  min-height: 100%;
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(2, 6, 23, 0.14),
+      rgba(2, 6, 23, 0.38),
+      rgba(2, 6, 23, 0.66)
+    ),
+    linear-gradient(
+      to right,
+      rgba(2, 6, 23, 0.22),
+      rgba(2, 6, 23, 0.06),
+      rgba(30, 64, 175, 0.20)
+    ),
+    url("/bg-estadio.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+}
+
+/* Remove camadas antigas que poderiam escurecer demais */
+body::before,
+body::after {
+  display: none !important;
+}
+
+/* Todas as páginas deixam o fundo aparecer */
+main,
+main.bg-slate-950,
+.min-h-screen.bg-slate-950 {
+  background: transparent !important;
+}
+
+/* Títulos principais sempre em maiúsculo */
+h1 {
+  text-transform: uppercase !important;
+  letter-spacing: -0.04em;
+}
+
+/* Títulos de seções também mais fortes */
+h2,
+h3 {
+  text-transform: uppercase;
+}
+
+/* Badges e etiquetas superiores padronizadas */
+span[class*="uppercase"],
+.inline-flex[class*="tracking"] {
+  text-transform: uppercase !important;
+}
+
+/* Cabeçalhos grandes das páginas internas mais parecidos com a home */
+main section > div.overflow-hidden.rounded-\[2rem\],
+main section > div.overflow-hidden.rounded-\[2rem\].border,
+main section > div.mb-8.overflow-hidden.rounded-\[2rem\] {
+  border-radius: 42px !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  background:
+    linear-gradient(
+      115deg,
+      rgba(246, 203, 47, 0.12),
+      rgba(9, 20, 35, 0.72),
+      rgba(30, 64, 175, 0.28)
+    ) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Parte interna superior dos cabeçalhos */
+main section > div.overflow-hidden.rounded-\[2rem\] > div:first-child,
+main section > div.mb-8.overflow-hidden.rounded-\[2rem\] > div:first-child {
+  background:
+    linear-gradient(
+      115deg,
+      rgba(246, 203, 47, 0.13),
+      rgba(0, 189, 231, 0.08),
+      rgba(30, 64, 175, 0.18)
+    ) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+/* Títulos dos cabeçalhos principais */
+main h1 {
+  font-weight: 950 !important;
+  color: white !important;
+  line-height: 0.95 !important;
+}
+
+/* Texto de descrição dos cabeçalhos */
+main h1 + p,
+main p {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Cards principais com aparência mais moderna */
+article,
+aside,
+form section,
+.rounded-\[2rem\].border,
+.rounded-3xl.border {
+  backdrop-filter: blur(10px);
+}
+
+/* Cards escuros sem apagar totalmente o estádio */
+.bg-white\/\[0\.07\] {
+  background-color: rgba(255, 255, 255, 0.075) !important;
+}
+
+.bg-slate-950\/55 {
+  background-color: rgba(2, 6, 23, 0.42) !important;
+}
+
+.bg-slate-950\/60 {
+  background-color: rgba(2, 6, 23, 0.44) !important;
+}
+
+.bg-slate-950\/65 {
+  background-color: rgba(2, 6, 23, 0.48) !important;
+}
+
+.bg-black\/20 {
+  background-color: rgba(0, 0, 0, 0.16) !important;
+}
+
+.bg-black\/25 {
+  background-color: rgba(0, 0, 0, 0.18) !important;
+}
+
+.bg-black\/30 {
+  background-color: rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Inputs mais integrados ao visual */
+input,
+select,
+textarea {
+  backdrop-filter: blur(8px);
+}
+
+/* Botões com mais presença visual */
+button,
+a {
+  transition:
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+/* Evita que elementos absolutos internos escureçam demais o estádio */
+.fixed.inset-0.-z-10,
+.absolute.inset-0 {
+  pointer-events: none;
+}
+
+/* Ajuste específico para textos grandes em telas menores */
+@media (max-width: 768px) {
+  main h1 {
+    font-size: 3rem !important;
+  }
+}
+
