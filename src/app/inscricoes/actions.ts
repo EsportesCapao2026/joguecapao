@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import {
+  buscarRestricaoAtleta,
+  montarDocumentoAtleta,
+} from "@/lib/restricoesAtletas";
 
 function limparNomeArquivo(nome: string) {
   return nome
@@ -109,12 +113,8 @@ export async function enviarInscricao(formData: FormData) {
 
   for (const indice of jogadorIndices) {
     const nome = String(formData.get(`jogador_nome_${indice}`) || "").trim();
-    const documentoTipo = String(
-      formData.get(`jogador_documento_tipo_${indice}`) || ""
-    ).trim();
-    const documentoNumero = String(
-      formData.get(`jogador_documento_numero_${indice}`) || ""
-    ).trim();
+    const documentoRg = String(formData.get(`jogador_rg_${indice}`) || "").trim();
+    const documentoCpf = String(formData.get(`jogador_cpf_${indice}`) || "").trim();
     const numeroCamisa = String(
       formData.get(`jogador_numero_camisa_${indice}`) || ""
     ).trim();
@@ -126,8 +126,8 @@ export async function enviarInscricao(formData: FormData) {
     const camposJogadorFaltando: string[] = [];
 
     if (!nome) camposJogadorFaltando.push(`Nome do jogador ${indice}`);
-    if (!documentoTipo) camposJogadorFaltando.push(`Tipo de documento do jogador ${indice}`);
-    if (!documentoNumero) camposJogadorFaltando.push(`Número do documento do jogador ${indice}`);
+    if (!documentoRg) camposJogadorFaltando.push(`RG do jogador ${indice}`);
+    if (!documentoCpf) camposJogadorFaltando.push(`CPF do jogador ${indice}`);
     if (!numeroCamisa) camposJogadorFaltando.push(`Número da camisa do jogador ${indice}`);
     if (!documentoArquivo || documentoArquivo.size === 0) {
       camposJogadorFaltando.push(`Arquivo do documento do jogador ${indice}`);
@@ -141,6 +141,42 @@ export async function enviarInscricao(formData: FormData) {
       });
     }
   }
+
+  const jogadoresPreparados = await Promise.all(
+    jogadorIndices.map(async (indice) => {
+      const nome = String(formData.get(`jogador_nome_${indice}`) || "").trim();
+      const documentoRg = String(formData.get(`jogador_rg_${indice}`) || "").trim();
+      const documentoCpf = String(formData.get(`jogador_cpf_${indice}`) || "").trim();
+      const numeroCamisa = String(
+        formData.get(`jogador_numero_camisa_${indice}`) || ""
+      ).trim();
+      const capitao = String(formData.get("capitao")) === indice;
+      const restricao = await buscarRestricaoAtleta(supabase, {
+        nome,
+        rg: documentoRg,
+        cpf: documentoCpf,
+      });
+
+      return {
+        indice,
+        nome,
+        documentoRg,
+        documentoCpf,
+        documentoNumero: montarDocumentoAtleta(documentoRg, documentoCpf),
+        numeroCamisa,
+        capitao,
+        restricao,
+      };
+    })
+  );
+
+  const jogadoresComRestricao = jogadoresPreparados.filter((jogador) => jogador.restricao);
+  const alertaPunicao = jogadoresComRestricao.length > 0;
+  const alertaPunicaoDetalhes = alertaPunicao
+    ? jogadoresComRestricao
+        .map((jogador) => `${jogador.nome}: ${jogador.restricao?.detalhe}`)
+        .join("\n")
+    : null;
 
   const logoArquivo = formData.get("logo_time") as File | null;
 
@@ -170,7 +206,8 @@ export async function enviarInscricao(formData: FormData) {
       observacoes: observacoes || null,
       logo_url: logoUrl,
       status: "pendente",
-      alerta_punicao: false,
+      alerta_punicao: alertaPunicao,
+      alerta_punicao_detalhes: alertaPunicaoDetalhes,
     })
     .select("id")
     .single();
@@ -185,21 +222,9 @@ export async function enviarInscricao(formData: FormData) {
     redirect(`/inscricoes?campeonato=${campeonatoId}&erro=salvar&detalhe=${detalhe}`);
   }
 
-  for (const indice of jogadorIndices) {
-    const nome = String(formData.get(`jogador_nome_${indice}`) || "").trim();
-    const documentoTipo = String(
-      formData.get(`jogador_documento_tipo_${indice}`) || ""
-    ).trim();
-    const documentoNumero = String(
-      formData.get(`jogador_documento_numero_${indice}`) || ""
-    ).trim();
-    const numeroCamisa = String(
-      formData.get(`jogador_numero_camisa_${indice}`) || ""
-    ).trim();
-    const capitao = String(formData.get("capitao")) === indice;
-
+  for (const jogadorPreparado of jogadoresPreparados) {
     const documentoArquivo = formData.get(
-      `jogador_documento_arquivo_${indice}`
+      `jogador_documento_arquivo_${jogadorPreparado.indice}`
     ) as File;
 
     const documentoArquivoUrl = await enviarArquivoStorage({
@@ -210,7 +235,7 @@ export async function enviarInscricao(formData: FormData) {
     });
 
     if (!documentoArquivoUrl) {
-      const faltando = encodeURIComponent(`Documento do jogador ${indice}`);
+      const faltando = encodeURIComponent(`Documento do jogador ${jogadorPreparado.indice}`);
       redirect(`/inscricoes?campeonato=${campeonatoId}&erro=documento&faltando=${faltando}`);
     }
 
@@ -218,14 +243,15 @@ export async function enviarInscricao(formData: FormData) {
       .from("inscricao_jogadores")
       .insert({
         inscricao_id: inscricaoCriada.id,
-        nome,
-        documento_tipo: documentoTipo,
-        documento_numero: documentoNumero,
+        nome: jogadorPreparado.nome,
+        documento_tipo: "RG/CPF",
+        documento_numero: jogadorPreparado.documentoNumero,
         documento_arquivo_url: documentoArquivoUrl,
-        numero_camisa: numeroCamisa,
-        capitao,
+        numero_camisa: jogadorPreparado.numeroCamisa,
+        capitao: jogadorPreparado.capitao,
         status: "pendente",
-        possivel_punicao: false,
+        possivel_punicao: Boolean(jogadorPreparado.restricao),
+        possivel_punicao_detalhes: jogadorPreparado.restricao?.detalhe || null,
       });
 
     if (erroJogador) {
@@ -242,5 +268,6 @@ export async function enviarInscricao(formData: FormData) {
   revalidatePath("/inscricoes");
   revalidatePath(`/campeonatos/${campeonatoId}`);
 
-  redirect(`/inscricoes?campeonato=${campeonatoId}&sucesso=1`);
+  const alerta = alertaPunicao ? "&alerta=punicao" : "";
+  redirect(`/inscricoes?campeonato=${campeonatoId}&sucesso=1${alerta}`);
 }

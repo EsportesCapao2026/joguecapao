@@ -74,12 +74,8 @@ export function InscricaoEquipeForm({ campeonatoId, categorias }: Props) {
       const numeroJogador = index + 1;
 
       const nome = String(dados.get(`jogador_nome_${id}`) || "").trim();
-      const documentoTipo = String(
-        dados.get(`jogador_documento_tipo_${id}`) || ""
-      ).trim();
-      const documentoNumero = String(
-        dados.get(`jogador_documento_numero_${id}`) || ""
-      ).trim();
+      const documentoRg = String(dados.get(`jogador_rg_${id}`) || "").trim();
+      const documentoCpf = String(dados.get(`jogador_cpf_${id}`) || "").trim();
       const numeroCamisa = String(
         dados.get(`jogador_numero_camisa_${id}`) || ""
       ).trim();
@@ -92,12 +88,12 @@ export function InscricaoEquipeForm({ campeonatoId, categorias }: Props) {
         novosErros.push(`Nome do Jogador ${numeroJogador}`);
       }
 
-      if (!documentoTipo) {
-        novosErros.push(`Tipo de documento do Jogador ${numeroJogador}`);
+      if (!documentoRg) {
+        novosErros.push(`RG do Jogador ${numeroJogador}`);
       }
 
-      if (!documentoNumero) {
-        novosErros.push(`Número do CPF/RG do Jogador ${numeroJogador}`);
+      if (!documentoCpf) {
+        novosErros.push(`CPF do Jogador ${numeroJogador}`);
       }
 
       if (!numeroCamisa) {
@@ -294,7 +290,7 @@ export function InscricaoEquipeForm({ campeonatoId, categorias }: Props) {
               Lista de jogadores
             </h2>
             <p className="mt-2 text-sm leading-6 text-white/55">
-              Campos obrigatórios: nome, CPF/RG, arquivo do documento e número da camisa.
+              Campos obrigatórios: nome, RG, CPF, arquivo do documento e número da camisa.
               O capitão é opcional.
             </p>
           </div>
@@ -330,7 +326,7 @@ export function InscricaoEquipeForm({ campeonatoId, categorias }: Props) {
                 </button>
               </div>
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-5 md:grid-cols-3">
                 <label className="block">
                   <span className={labelClass}>Nome do jogador obrigatório</span>
                   <input
@@ -342,30 +338,27 @@ export function InscricaoEquipeForm({ campeonatoId, categorias }: Props) {
                 </label>
 
                 <label className="block">
-                  <span className={labelClass}>Tipo de documento obrigatório</span>
-                  <select
-                    name={`jogador_documento_tipo_${id}`}
-                    required
-                    className={inputClass}
-                  >
-                    <option value="">Selecione</option>
-                    <option value="CPF">CPF</option>
-                    <option value="RG">RG</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="mt-5 grid gap-5 md:grid-cols-3">
-                <label className="block">
-                  <span className={labelClass}>Número do documento obrigatório</span>
+                  <span className={labelClass}>RG obrigatório</span>
                   <input
-                    name={`jogador_documento_numero_${id}`}
+                    name={`jogador_rg_${id}`}
                     required
-                    placeholder="Digite o CPF ou RG"
+                    placeholder="Digite o RG"
                     className={inputClass}
                   />
                 </label>
 
+                <label className="block">
+                  <span className={labelClass}>CPF obrigatório</span>
+                  <input
+                    name={`jogador_cpf_${id}`}
+                    required
+                    placeholder="Digite o CPF"
+                    className={inputClass}
+                  />
+                </label>
+              </div>
+
+              <div className="mt-5 grid gap-5 md:grid-cols-2">
                 <label className="block">
                   <span className={labelClass}>Número da camisa obrigatório</span>
                   <input

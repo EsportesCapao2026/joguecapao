@@ -15,6 +15,33 @@ async function exigirAdmin() {
   }
 }
 
+async function recalcularAlertaPunicaoInscricao(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  inscricaoId: string
+) {
+  const { data: jogadores } = await supabase
+    .from("inscricao_jogadores")
+    .select("nome, possivel_punicao, possivel_punicao_detalhes")
+    .eq("inscricao_id", inscricaoId);
+
+  const alertas = (jogadores || []).filter((jogador) => jogador.possivel_punicao);
+
+  await supabase
+    .from("inscricoes")
+    .update({
+      alerta_punicao: alertas.length > 0,
+      alerta_punicao_detalhes:
+        alertas.length > 0
+          ? alertas
+              .map((jogador) =>
+                `${jogador.nome}: ${jogador.possivel_punicao_detalhes || "possível restrição"}`
+              )
+              .join("\n")
+          : null,
+    })
+    .eq("id", inscricaoId);
+}
+
 export async function alterarStatusInscricao(formData: FormData) {
   await exigirAdmin();
 
@@ -81,14 +108,18 @@ export async function alterarStatusInscricao(formData: FormData) {
     const { data: jogadores, error: fetchJogadoresError } = await supabase
       .from("inscricao_jogadores")
       .select("*")
-      .eq("inscricao_id", inscricaoId)
-      .neq("status", "recusado");
+      .eq("inscricao_id", inscricaoId);
 
     if (fetchJogadoresError) {
       console.error("Erro ao buscar jogadores da inscrição:", fetchJogadoresError);
     } else if (jogadores && jogadores.length > 0) {
+      const jogadoresAptos = jogadores.filter((jogador) => {
+        const statusJogador = String(jogador.status || "").toLowerCase();
+        return statusJogador !== "recusado" && statusJogador !== "reprovado";
+      });
+
       // Mapear jogadores para inserir na tabela atletas
-      const atletasParaInserir = jogadores.map((jogador) => ({
+      const atletasParaInserir = jogadoresAptos.map((jogador) => ({
         id: jogador.id,
         equipe_id: inscricaoId,
         campeonato_id: inscricao.campeonato_id,
@@ -101,9 +132,10 @@ export async function alterarStatusInscricao(formData: FormData) {
       }));
 
       // Realizar upsert dos atletas
-      const { error: athletesUpsertError } = await supabase
-        .from("atletas")
-        .upsert(atletasParaInserir);
+      const { error: athletesUpsertError } =
+        atletasParaInserir.length > 0
+          ? await supabase.from("atletas").upsert(atletasParaInserir)
+          : { error: null };
 
       if (athletesUpsertError) {
         console.error("Erro ao sincronizar atletas:", athletesUpsertError);
@@ -154,4 +186,102 @@ export async function alterarStatusJogador(formData: FormData) {
   revalidatePath("/admin/inscricoes");
 
   redirect("/admin/inscricoes?sucesso=jogador");
+}
+
+export async function resolverRestricaoJogador(formData: FormData) {
+  await exigirAdmin();
+
+  const jogadorId = String(formData.get("jogador_id") || "").trim();
+  const acao = String(formData.get("acao") || "").trim();
+  const punicaoId = String(formData.get("punicao_id") || "").trim();
+
+  if (!jogadorId || !acao) {
+    redirect("/admin/inscricoes?erro=jogador");
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: jogador, error: jogadorError } = await supabase
+    .from("inscricao_jogadores")
+    .select("id, inscricao_id, nome, possivel_punicao_detalhes")
+    .eq("id", jogadorId)
+    .single();
+
+  if (jogadorError || !jogador) {
+    console.error("Erro ao buscar jogador para resolver restrição:", jogadorError);
+    redirect("/admin/inscricoes?erro=jogador");
+  }
+
+  if (acao === "confirmar") {
+    const detalheConfirmado = [
+      jogador.possivel_punicao_detalhes,
+      "Punição confirmada pelo administrador. Atleta reprovado nesta inscrição.",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const { error } = await supabase
+      .from("inscricao_jogadores")
+      .update({
+        status: "reprovado",
+        possivel_punicao: true,
+        possivel_punicao_detalhes: detalheConfirmado,
+      })
+      .eq("id", jogadorId);
+
+    if (error) {
+      console.error("Erro ao confirmar punição:", error);
+      redirect("/admin/inscricoes?erro=jogador-status");
+    }
+  }
+
+  if (acao === "retirar") {
+    if (punicaoId) {
+      const { error: punicaoError } = await supabase
+        .from("punicoes")
+        .update({ status: "Encerrada" })
+        .eq("id", punicaoId);
+
+      if (punicaoError) {
+        console.error("Erro ao retirar punição:", punicaoError);
+        redirect("/admin/inscricoes?erro=jogador-status");
+      }
+    }
+
+    const { error } = await supabase
+      .from("inscricao_jogadores")
+      .update({
+        possivel_punicao: false,
+        possivel_punicao_detalhes: null,
+      })
+      .eq("id", jogadorId);
+
+    if (error) {
+      console.error("Erro ao limpar restrição do jogador:", error);
+      redirect("/admin/inscricoes?erro=jogador-status");
+    }
+  }
+
+  if (acao === "nao_punido") {
+    const { error } = await supabase
+      .from("inscricao_jogadores")
+      .update({
+        possivel_punicao: false,
+        possivel_punicao_detalhes: null,
+      })
+      .eq("id", jogadorId);
+
+    if (error) {
+      console.error("Erro ao marcar jogador como não punido:", error);
+      redirect("/admin/inscricoes?erro=jogador-status");
+    }
+  }
+
+  await recalcularAlertaPunicaoInscricao(supabase, jogador.inscricao_id);
+
+  revalidatePath("/admin/inscricoes");
+  revalidatePath("/admin/punicoes");
+  revalidatePath("/punicoes");
+
+  redirect("/admin/inscricoes?sucesso=restricao");
 }

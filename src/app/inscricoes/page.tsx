@@ -6,6 +6,7 @@ import { InscricaoEquipeForm } from "@/components/inscricoes/InscricaoEquipeForm
 type SearchParams = Promise<{
   campeonato?: string;
   sucesso?: string;
+  alerta?: string;
   erro?: string;
   detalhe?: string;
   faltando?: string;
@@ -189,6 +190,13 @@ export default async function InscricoesPage({
                       <p className="mt-1 text-sm leading-6 text-green-50/80">
                         A inscrição ficou pendente e será analisada pela organização.
                       </p>
+
+                      {params.alerta === "punicao" && (
+                        <p className="mt-3 rounded-2xl border border-yellow-300/25 bg-yellow-300/10 p-3 text-sm font-bold leading-6 text-yellow-50">
+                          Atenção: o sistema encontrou um possível atleta com restrição.
+                          A inscrição foi enviada normalmente, mas a organização fará a conferência antes da aprovação.
+                        </p>
+                      )}
 
                       {params.detalhe && (
                         <p className="mt-3 rounded-2xl border border-red-300/20 bg-red-500/10 p-3 text-xs leading-5 text-red-50/85">

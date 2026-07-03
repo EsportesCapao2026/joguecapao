@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { Plus, Users, PlusCircle, FileText, ChevronRight, Trash2, Link as LinkIcon, FileUp } from "lucide-react";
 import { cadastrarEquipeManualCompleta, cadastrarAtletaManual } from "@/app/admin/clubes/actions";
+import { formatarDocumentoAtleta } from "@/lib/restricoesAtletas";
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -50,8 +51,8 @@ type Jogador = {
 type NovoTimeAtleta = {
   id_temp: string;
   nome: string;
-  documentoTipo: string;
-  documentoNumero: string;
+  documentoRg: string;
+  documentoCpf: string;
   numeroCamisa: string;
   capitao: boolean;
 };
@@ -165,8 +166,8 @@ export default function AdminClubesControl({
       {
         id_temp: Math.random().toString(36).substring(2, 9),
         nome: "",
-        documentoTipo: "RG",
-        documentoNumero: "",
+        documentoRg: "",
+        documentoCpf: "",
         numeroCamisa: "",
         capitao: false,
       },
@@ -198,10 +199,10 @@ export default function AdminClubesControl({
         switch (campo) {
           case "nome":
             return { ...a, nome: String(valor) };
-          case "documentoTipo":
-            return { ...a, documentoTipo: String(valor) };
-          case "documentoNumero":
-            return { ...a, documentoNumero: String(valor) };
+          case "documentoRg":
+            return { ...a, documentoRg: String(valor) };
+          case "documentoCpf":
+            return { ...a, documentoCpf: String(valor) };
           case "numeroCamisa":
             return { ...a, numeroCamisa: String(valor) };
         }
@@ -474,28 +475,25 @@ export default function AdminClubesControl({
                       </label>
 
                       <label className="block">
-                        <span className={labelClass}>Documento *</span>
-                        <select
-                          name={`atleta_doc_tipo_${index}`}
+                        <span className={labelClass}>RG *</span>
+                        <input
+                          name={`atleta_rg_${index}`}
                           required
-                          value={atleta.documentoTipo}
-                          onChange={(e) => handleAtletaChange(atleta.id_temp, "documentoTipo", e.target.value)}
-                          className={selectClass}
-                        >
-                          <option value="RG">RG</option>
-                          <option value="CPF">CPF</option>
-                          <option value="CNH">CNH</option>
-                        </select>
+                          value={atleta.documentoRg}
+                          onChange={(e) => handleAtletaChange(atleta.id_temp, "documentoRg", e.target.value)}
+                          placeholder="RG"
+                          className={inputClass}
+                        />
                       </label>
 
                       <label className="block">
-                        <span className={labelClass}>Nº Doc *</span>
+                        <span className={labelClass}>CPF *</span>
                         <input
-                          name={`atleta_doc_num_${index}`}
+                          name={`atleta_cpf_${index}`}
                           required
-                          value={atleta.documentoNumero}
-                          onChange={(e) => handleAtletaChange(atleta.id_temp, "documentoNumero", e.target.value)}
-                          placeholder="Número"
+                          value={atleta.documentoCpf}
+                          onChange={(e) => handleAtletaChange(atleta.id_temp, "documentoCpf", e.target.value)}
+                          placeholder="CPF"
                           className={inputClass}
                         />
                       </label>
@@ -725,18 +723,13 @@ export default function AdminClubesControl({
                     </label>
 
                     <label className="block">
-                      <span className={labelClass}>Tipo do Documento *</span>
-                      <select name="documento_tipo" required className={selectClass}>
-                        <option value="RG">RG</option>
-                        <option value="CPF">CPF</option>
-                        <option value="CNH">CNH</option>
-                        <option value="Passaporte">Passaporte</option>
-                      </select>
+                      <span className={labelClass}>RG *</span>
+                      <input name="documento_rg" required placeholder="RG do jogador" className={inputClass} />
                     </label>
 
                     <label className="block">
-                      <span className={labelClass}>Nº Documento *</span>
-                      <input name="documento_numero" required placeholder="Número do documento" className={inputClass} />
+                      <span className={labelClass}>CPF *</span>
+                      <input name="documento_cpf" required placeholder="CPF do jogador" className={inputClass} />
                     </label>
 
                     <label className="block">
@@ -778,7 +771,7 @@ export default function AdminClubesControl({
                           <div>
                             <p className="font-bold uppercase text-white truncate max-w-[150px]">{j.nome}</p>
                             <p className="text-xxs text-white/40 uppercase mt-0.5">
-                              {j.documento_tipo}: {j.documento_numero} {j.numero_camisa ? `• Camisa #${j.numero_camisa}` : ""}
+                              {formatarDocumentoAtleta(j)} {j.numero_camisa ? `• Camisa #${j.numero_camisa}` : ""}
                             </p>
                           </div>
                           <div className="flex flex-col items-end gap-1.5 shrink-0">

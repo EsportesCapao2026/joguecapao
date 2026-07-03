@@ -46,6 +46,7 @@ type Campeonato = {
 
 type SearchParams = Promise<{
   sucesso?: string;
+  alerta?: string;
   erro?: string;
   detalhe?: string;
 }>;
@@ -81,8 +82,9 @@ export default async function AdminClubesPage({
   // 3. Buscar todos os jogadores das inscrições aprovadas
   const { data: jogadoresData } = await supabase
     .from("inscricao_jogadores")
-    .select("id, inscricao_id, nome, documento_tipo, documento_numero, numero_camisa, capitao, status, documento_arquivo_url")
-    .eq("status", "aprovada")
+    .select("*")
+    .neq("status", "reprovado")
+    .neq("status", "recusado")
     .order("nome", { ascending: true });
 
   const jogadoresBrutos = (jogadoresData || []) as Jogador[];
@@ -126,6 +128,11 @@ export default async function AdminClubesPage({
         <div className="rounded-3xl border border-green-300/25 bg-green-400/10 p-4 text-sm font-black text-green-100 backdrop-blur">
           {params.sucesso === "equipe-cadastrada" && "Clube cadastrado manualmente com sucesso!"}
           {params.sucesso === "jogador-cadastrado" && "Atleta inscrito com sucesso!"}
+          {params.alerta === "punicao" && (
+            <span className="mt-2 block text-yellow-100">
+              Atenção: o sistema encontrou possível restrição para atleta cadastrado.
+            </span>
+          )}
         </div>
       )}
 

@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isAdminSessionValid } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import {
+  buscarRestricaoAtleta,
+  montarDocumentoAtleta,
+} from "@/lib/restricoesAtletas";
 
 async function exigirAdmin() {
   const cookieStore = await cookies();
@@ -168,6 +172,7 @@ export async function cadastrarEquipeManualCompleta(formData: FormData) {
       logo_url: logoUrl,
       observacoes: documentoResponsavelUrl ? JSON.stringify({ documento_responsavel: documentoResponsavelUrl }) : null,
       status: "aprovada",
+      alerta_punicao: false,
     })
     .select("id")
     .single();
@@ -195,16 +200,28 @@ export async function cadastrarEquipeManualCompleta(formData: FormData) {
 
   // 6. Cadastrar os atletas que vieram na lista do FormData
   const atletasCount = parseInt(String(formData.get("atletas_count") || "0")) || 0;
+  const alertasPunicao: string[] = [];
 
   for (let i = 0; i < atletasCount; i++) {
     const nome = String(formData.get(`atleta_nome_${i}`) || "").trim();
-    const documentoTipo = String(formData.get(`atleta_doc_tipo_${i}`) || "RG").trim();
-    const documentoNumero = String(formData.get(`atleta_doc_num_${i}`) || "").trim();
+    const documentoRg = String(formData.get(`atleta_rg_${i}`) || "").trim();
+    const documentoCpf = String(formData.get(`atleta_cpf_${i}`) || "").trim();
+    const documentoNumero = montarDocumentoAtleta(documentoRg, documentoCpf);
     const numeroCamisa = String(formData.get(`atleta_camisa_${i}`) || "").trim();
     const capitao = String(formData.get(`atleta_capitao_${i}`)) === "true";
     const arquivoAtleta = formData.get(`atleta_arquivo_${i}`) as File | null;
 
-    if (!nome || !documentoNumero) continue;
+    if (!nome || !documentoRg || !documentoCpf) continue;
+
+    const restricao = await buscarRestricaoAtleta(supabase, {
+      nome,
+      rg: documentoRg,
+      cpf: documentoCpf,
+    });
+
+    if (restricao) {
+      alertasPunicao.push(`${nome}: ${restricao.detalhe}`);
+    }
 
     let atletaDocUrl: string | null = null;
 
@@ -236,12 +253,14 @@ export async function cadastrarEquipeManualCompleta(formData: FormData) {
       .insert({
         inscricao_id: inscricao.id,
         nome,
-        documento_tipo: documentoTipo,
+        documento_tipo: "RG/CPF",
         documento_numero: documentoNumero,
         numero_camisa: numeroCamisa || null,
         capitao,
         documento_arquivo_url: atletaDocUrl,
         status: "aprovada",
+        possivel_punicao: Boolean(restricao),
+        possivel_punicao_detalhes: restricao?.detalhe || null,
       })
       .select("id")
       .single();
@@ -258,6 +277,11 @@ export async function cadastrarEquipeManualCompleta(formData: FormData) {
         id: jogador.id,
         equipe_id: inscricao.id,
         nome,
+        documento: documentoNumero,
+        numero_camisa: numeroCamisa || null,
+        capitao,
+        documento_url: atletaDocUrl,
+        status: "ativo",
       });
 
     if (atlError) {
@@ -265,8 +289,19 @@ export async function cadastrarEquipeManualCompleta(formData: FormData) {
     }
   }
 
+  if (alertasPunicao.length > 0) {
+    await supabase
+      .from("inscricoes")
+      .update({
+        alerta_punicao: true,
+        alerta_punicao_detalhes: alertasPunicao.join("\n"),
+      })
+      .eq("id", inscricao.id);
+  }
+
   revalidatePath("/admin/clubes-atletas");
-  redirect(`/admin/clubes-atletas?sucesso=equipe-cadastrada&equipeId=${inscricao.id}`);
+  const alerta = alertasPunicao.length > 0 ? "&alerta=punicao" : "";
+  redirect(`/admin/clubes-atletas?sucesso=equipe-cadastrada&equipeId=${inscricao.id}${alerta}`);
 }
 
 // Cadastrar um atleta manualmente em uma equipe (já aprovado de forma direta)
@@ -276,14 +311,21 @@ export async function cadastrarAtletaManual(formData: FormData) {
 
   const inscricaoId = String(formData.get("inscricao_id") || "").trim();
   const nome = String(formData.get("nome") || "").trim();
-  const documentoTipo = String(formData.get("documento_tipo") || "RG").trim();
-  const documentoNumero = String(formData.get("documento_numero") || "").trim();
+  const documentoRg = String(formData.get("documento_rg") || "").trim();
+  const documentoCpf = String(formData.get("documento_cpf") || "").trim();
+  const documentoNumero = montarDocumentoAtleta(documentoRg, documentoCpf);
   const numeroCamisa = String(formData.get("numero_camisa") || "").trim();
   const capitao = formData.get("capitao") === "on";
 
-  if (!inscricaoId || !nome || !documentoNumero) {
+  if (!inscricaoId || !nome || !documentoRg || !documentoCpf) {
     redirect("/admin/clubes-atletas?erro=campos-obrigatorios");
   }
+
+  const restricao = await buscarRestricaoAtleta(supabase, {
+    nome,
+    rg: documentoRg,
+    cpf: documentoCpf,
+  });
 
   // 1. Cadastrar na tabela inscricao_jogadores
   const { data: jogador, error: jogError } = await supabase
@@ -291,11 +333,13 @@ export async function cadastrarAtletaManual(formData: FormData) {
     .insert({
       inscricao_id: inscricaoId,
       nome,
-      documento_tipo: documentoTipo,
+      documento_tipo: "RG/CPF",
       documento_numero: documentoNumero,
       numero_camisa: numeroCamisa || null,
       capitao,
       status: "aprovada",
+      possivel_punicao: Boolean(restricao),
+      possivel_punicao_detalhes: restricao?.detalhe || null,
     })
     .select("id")
     .single();
@@ -312,12 +356,27 @@ export async function cadastrarAtletaManual(formData: FormData) {
       id: jogador.id,
       equipe_id: inscricaoId,
       nome,
+      documento: documentoNumero,
+      numero_camisa: numeroCamisa || null,
+      capitao,
+      status: "ativo",
     });
 
   if (atlError) {
     console.error("Erro ao sincronizar na tabela atletas:", atlError);
   }
 
+  if (restricao) {
+    await supabase
+      .from("inscricoes")
+      .update({
+        alerta_punicao: true,
+        alerta_punicao_detalhes: `${nome}: ${restricao.detalhe}`,
+      })
+      .eq("id", inscricaoId);
+  }
+
   revalidatePath("/admin/clubes-atletas");
-  redirect(`/admin/clubes-atletas?sucesso=jogador-cadastrado&equipeId=${inscricaoId}`);
+  const alerta = restricao ? "&alerta=punicao" : "";
+  redirect(`/admin/clubes-atletas?sucesso=jogador-cadastrado&equipeId=${inscricaoId}${alerta}`);
 }

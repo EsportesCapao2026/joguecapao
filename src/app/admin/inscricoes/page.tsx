@@ -10,10 +10,17 @@ import {
 } from "lucide-react";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { exigirAdmin } from "@/lib/adminAuth";
+import {
+  buscarRestricaoAtleta,
+  extrairDocumentosAtleta,
+  formatarDocumentoAtleta,
+  type RestricaoAtleta,
+} from "@/lib/restricoesAtletas";
 import { GerarPdfInscricaoButton } from "@/components/admin/inscricoes/GerarPdfInscricaoButton";
 import {
   alterarStatusInscricao,
   alterarStatusJogador,
+  resolverRestricaoJogador,
 } from "./actions";
 
 /* eslint-disable @next/next/no-img-element -- Logos de equipes vêm do storage e podem usar URLs externas assinadas. */
@@ -48,6 +55,8 @@ type Jogador = {
   nome: string;
   documento_tipo: string;
   documento_numero: string;
+  documento_rg?: string | null;
+  documento_cpf?: string | null;
   documento_arquivo_url: string | null;
   numero_camisa: string;
   capitao: boolean | null;
@@ -63,15 +72,15 @@ type Campeonato = {
 };
 
 function statusLabel(status: string | null) {
-  if (status === "aprovada") return "Aprovada";
-  if (status === "reprovada") return "Reprovada";
+  if (status === "aprovada" || status === "aprovado") return "Aprovada";
+  if (status === "reprovada" || status === "reprovado") return "Reprovada";
   if (status === "pendente") return "Pendente";
   return "Sem status";
 }
 
 function statusClass(status: string | null) {
-  if (status === "aprovada") return "bg-green-300 text-slate-950";
-  if (status === "reprovada") {
+  if (status === "aprovada" || status === "aprovado") return "bg-green-300 text-slate-950";
+  if (status === "reprovada" || status === "reprovado") {
     return "border border-red-300/30 bg-red-500/10 text-red-100";
   }
   return "border border-yellow-300/30 bg-yellow-300/10 text-yellow-100";
@@ -115,9 +124,7 @@ export default async function AdminInscricoesPage({
     inscricaoIds.length > 0
       ? await supabase
           .from("inscricao_jogadores")
-          .select(
-            "id, inscricao_id, nome, documento_tipo, documento_numero, documento_arquivo_url, numero_camisa, capitao, possivel_punicao, possivel_punicao_detalhes, status"
-          )
+          .select("*")
           .in("inscricao_id", inscricaoIds)
           .order("created_at", { ascending: true })
       : { data: [] };
@@ -157,6 +164,21 @@ export default async function AdminInscricoesPage({
       if (data?.signedUrl) {
         documentosAssinados.set(jogador.id, data.signedUrl);
       }
+    }
+  }
+
+  const restricoesPorJogador = new Map<string, RestricaoAtleta>();
+
+  for (const jogador of jogadores.filter((item) => item.possivel_punicao)) {
+    const documentos = extrairDocumentosAtleta(jogador);
+    const restricao = await buscarRestricaoAtleta(supabase, {
+      nome: jogador.nome,
+      rg: documentos.rg,
+      cpf: documentos.cpf,
+    });
+
+    if (restricao) {
+      restricoesPorJogador.set(jogador.id, restricao);
     }
   }
 
@@ -239,7 +261,7 @@ export default async function AdminInscricoesPage({
                             {inscricao.alerta_punicao && (
                               <span className="inline-flex items-center gap-1 rounded-full border border-red-300/30 bg-red-500/10 px-3 py-1 text-xs font-black text-red-100">
                                 <AlertTriangle size={13} />
-                                Possível punição
+                                Possível jogador com restrição
                               </span>
                             )}
                           </div>
@@ -397,6 +419,7 @@ export default async function AdminInscricoesPage({
                             const documentoUrl = documentosAssinados.get(
                               jogador.id
                             );
+                            const restricao = restricoesPorJogador.get(jogador.id);
 
                             return (
                               <div
@@ -424,7 +447,7 @@ export default async function AdminInscricoesPage({
                                       {jogador.possivel_punicao && (
                                         <span className="inline-flex items-center gap-1 rounded-full border border-red-300/30 bg-red-500/10 px-3 py-1 text-xs font-black text-red-100">
                                           <ShieldAlert size={13} />
-                                          Possível punição
+                                          Possível restrição
                                         </span>
                                       )}
                                     </div>
@@ -434,8 +457,7 @@ export default async function AdminInscricoesPage({
                                     </h4>
 
                                     <p className="mt-2 text-sm leading-6 text-white/65">
-                                      {jogador.documento_tipo}:{" "}
-                                      {jogador.documento_numero}
+                                      {formatarDocumentoAtleta(jogador)}
                                       <br />
                                       Camisa: {jogador.numero_camisa}
                                     </p>
@@ -476,6 +498,8 @@ export default async function AdminInscricoesPage({
                                         nome: atleta.nome,
                                         documento_tipo: atleta.documento_tipo,
                                         documento_numero: atleta.documento_numero,
+                                        documento_rg: atleta.documento_rg,
+                                        documento_cpf: atleta.documento_cpf,
                                         numero_camisa: atleta.numero_camisa,
                                         capitao: atleta.capitao,
                                         status: atleta.status,
@@ -525,7 +549,57 @@ export default async function AdminInscricoesPage({
 
                                 {jogador.possivel_punicao_detalhes && (
                                   <div className="mt-4 rounded-2xl border border-red-300/25 bg-red-500/10 p-4 text-sm leading-6 text-red-50">
-                                    {jogador.possivel_punicao_detalhes}
+                                    <strong className="mb-2 block text-base font-black uppercase">
+                                      Possível jogador com restrição no campeonato
+                                    </strong>
+                                    <p>
+                                      {restricao?.detalhe || jogador.possivel_punicao_detalhes}
+                                    </p>
+
+                                    <div className="mt-4 grid gap-2 md:grid-cols-3">
+                                      <form action={resolverRestricaoJogador}>
+                                        <input type="hidden" name="jogador_id" value={jogador.id} />
+                                        <input type="hidden" name="acao" value="confirmar" />
+                                        <input
+                                          type="hidden"
+                                          name="punicao_id"
+                                          value={restricao?.punicaoId || ""}
+                                        />
+                                        <button
+                                          type="submit"
+                                          className="w-full rounded-2xl bg-red-300 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-950"
+                                        >
+                                          Confirmar punição
+                                        </button>
+                                      </form>
+
+                                      <form action={resolverRestricaoJogador}>
+                                        <input type="hidden" name="jogador_id" value={jogador.id} />
+                                        <input type="hidden" name="acao" value="retirar" />
+                                        <input
+                                          type="hidden"
+                                          name="punicao_id"
+                                          value={restricao?.punicaoId || ""}
+                                        />
+                                        <button
+                                          type="submit"
+                                          className="w-full rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-yellow-50"
+                                        >
+                                          Retirar punição
+                                        </button>
+                                      </form>
+
+                                      <form action={resolverRestricaoJogador}>
+                                        <input type="hidden" name="jogador_id" value={jogador.id} />
+                                        <input type="hidden" name="acao" value="nao_punido" />
+                                        <button
+                                          type="submit"
+                                          className="w-full rounded-2xl border border-green-300/30 bg-green-400/10 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-green-50"
+                                        >
+                                          Não é jogador punido
+                                        </button>
+                                      </form>
+                                    </div>
                                   </div>
                                 )}
                               </div>

@@ -6,6 +6,7 @@ import {
   StandardFonts,
   rgb,
 } from "pdf-lib";
+import { formatarDocumentoAtleta } from "@/lib/restricoesAtletas";
 
 type InscricaoPdf = {
   id: string;
@@ -27,6 +28,8 @@ type JogadorPdf = {
   nome: string;
   documento_tipo: string;
   documento_numero: string;
+  documento_rg?: string | null;
+  documento_cpf?: string | null;
   numero_camisa: string;
   capitao: boolean | null;
   status: string | null;
@@ -371,7 +374,7 @@ export function GerarPdfInscricaoButton({
       });
 
       pagina.drawText(
-        `${jogador.documento_tipo}: ${jogador.documento_numero}`,
+        formatarDocumentoAtleta(jogador),
         {
           x: 295,
           y,
@@ -463,7 +466,7 @@ export function GerarPdfInscricaoButton({
         });
 
         separador.drawText(
-          `${jogador.documento_tipo}: ${jogador.documento_numero}`,
+          formatarDocumentoAtleta(jogador),
           {
             x: 40,
             y: 695,
