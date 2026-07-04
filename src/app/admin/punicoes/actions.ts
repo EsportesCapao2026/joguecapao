@@ -95,3 +95,51 @@ export async function removerPunicao(formData: FormData) {
 
   redirect("/admin/punicoes?sucesso=removida");
 }
+
+export async function adicionarObservacaoPunicao(formData: FormData) {
+  await exigirAdmin();
+
+  const punicaoId = String(formData.get("punicao_id") || "").trim();
+  const observacao = String(formData.get("observacao") || "").trim();
+
+  if (!punicaoId || !observacao) {
+    redirect("/admin/punicoes?erro=observacao");
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: punicao, error: fetchError } = await supabase
+    .from("punicoes")
+    .select("motivo")
+    .eq("id", punicaoId)
+    .single();
+
+  if (fetchError || !punicao) {
+    console.error("Erro ao buscar punicao:", fetchError);
+    redirect("/admin/punicoes?erro=observacao");
+  }
+
+  const data = new Date().toLocaleString("pt-BR");
+  const motivoAtual = String(punicao.motivo || "").trim();
+  const novoMotivo = [
+    motivoAtual,
+    `Observacao adicionada em ${data}: ${observacao}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const { error } = await supabase
+    .from("punicoes")
+    .update({ motivo: novoMotivo })
+    .eq("id", punicaoId);
+
+  if (error) {
+    console.error("Erro ao adicionar observacao:", error);
+    redirect(`/admin/punicoes?erro=observacao&detalhe=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/admin/punicoes");
+  revalidatePath("/punicoes");
+
+  redirect("/admin/punicoes?sucesso=observacao");
+}

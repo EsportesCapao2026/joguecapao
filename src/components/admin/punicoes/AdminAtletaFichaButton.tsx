@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, FileDown, FileText, X } from "lucide-react";
+import { ExternalLink, FileDown, FileText, MessageSquarePlus, Trash2, X } from "lucide-react";
 import { jsPDF } from "jspdf";
+import {
+  adicionarObservacaoPunicao,
+  removerPunicao,
+} from "@/app/admin/punicoes/actions";
 
 export type AtletaFichaHistorico = {
   id: string;
@@ -16,6 +20,7 @@ export type AtletaFichaHistorico = {
 };
 
 export type AtletaFicha = {
+  punicaoId: string;
   nome: string;
   documentos: string;
   numeroCamisa: string | null;
@@ -278,6 +283,56 @@ export function AdminAtletaFichaButton({ ficha }: { ficha: AtletaFicha | null })
                   ))
                 )}
               </div>
+            </div>
+
+            <div className="mt-4 rounded-3xl border border-yellow-300/20 bg-yellow-300/10 p-5">
+              <h4 className="text-sm font-black uppercase text-yellow-100">
+                Acrescentar informacao na punicao
+              </h4>
+              <form action={adicionarObservacaoPunicao} className="mt-4 space-y-3">
+                <input type="hidden" name="punicao_id" value={ficha.punicaoId} />
+                <textarea
+                  name="observacao"
+                  required
+                  rows={4}
+                  placeholder="Escreva aqui uma observacao complementar sobre esta punicao..."
+                  className="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-yellow-300"
+                />
+                <button
+                  type="submit"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-yellow-300 px-4 py-3 text-xs font-black uppercase text-slate-950 md:w-auto"
+                >
+                  <MessageSquarePlus size={15} />
+                  Acrescentar observacao
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-4 rounded-3xl border border-red-300/20 bg-red-500/10 p-5">
+              <h4 className="text-sm font-black uppercase text-red-100">
+                Excluir punicao
+              </h4>
+              <p className="mt-2 text-sm leading-6 text-red-50/75">
+                Esta acao remove o registro da punicao do sistema.
+              </p>
+              <form
+                action={removerPunicao}
+                onSubmit={(event) => {
+                  if (!window.confirm("Tem certeza que deseja excluir esta punicao?")) {
+                    event.preventDefault();
+                  }
+                }}
+                className="mt-4"
+              >
+                <input type="hidden" name="punicao_id" value={ficha.punicaoId} />
+                <button
+                  type="submit"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-300/30 bg-red-500/20 px-4 py-3 text-xs font-black uppercase text-red-50 md:w-auto"
+                >
+                  <Trash2 size={15} />
+                  Excluir punicao
+                </button>
+              </form>
             </div>
           </section>
         </div>

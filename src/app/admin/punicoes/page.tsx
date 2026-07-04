@@ -264,6 +264,7 @@ export default async function AdminPunicoesPage({
     });
 
     const ficha: AtletaFicha = {
+      punicaoId: punicao.id,
       nome: ultimoRegistro?.nome || punicao.atleta_nome || "Atleta nao informado",
       documentos: ultimoRegistro
         ? formatarDocumentoAtleta(ultimoRegistro)
@@ -315,6 +316,7 @@ export default async function AdminPunicoesPage({
         <div className="rounded-3xl border border-green-300/25 bg-green-400/10 p-4 text-sm font-black text-green-100 backdrop-blur">
           {params.sucesso === "cadastrada" && "Punição cadastrada com sucesso!"}
           {params.sucesso === "removida" && "Punição removida com sucesso!"}
+          {params.sucesso === "observacao" && "Observação adicionada à punição com sucesso!"}
         </div>
       )}
 
