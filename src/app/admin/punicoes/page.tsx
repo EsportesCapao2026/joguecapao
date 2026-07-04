@@ -2,8 +2,17 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { exigirAdmin } from "@/lib/adminAuth";
 import { AdminPunicaoForm } from "@/components/admin/punicoes/AdminPunicaoForm";
 import { AdminPunicaoActions } from "@/components/admin/punicoes/AdminPunicaoActions";
+import {
+  AdminAtletaFichaButton,
+  type AtletaFicha,
+} from "@/components/admin/punicoes/AdminAtletaFichaButton";
 import { removerPunicao } from "./actions";
 import { Trash2, CalendarDays, AlertTriangle } from "lucide-react";
+import {
+  documentosNormalizadosAtleta,
+  formatarDocumentoAtleta,
+  normalizarNomeAtleta,
+} from "@/lib/restricoesAtletas";
 
 type SearchParams = Promise<{
   sucesso?: string;
@@ -53,10 +62,27 @@ type Punicao = {
 
 type InscricaoContato = {
   id: string;
+  campeonato_id?: string | null;
+  categoria?: string | null;
+  serie?: string | null;
   nome_equipe: string | null;
   nome_time: string | null;
   responsavel_nome: string | null;
   responsavel_telefone: string | null;
+  status?: string | null;
+  created_at?: string | null;
+};
+
+type InscricaoJogadorFicha = {
+  id: string;
+  inscricao_id: string | null;
+  nome: string | null;
+  documento_tipo: string | null;
+  documento_numero: string | null;
+  documento_arquivo_url: string | null;
+  numero_camisa: string | null;
+  status: string | null;
+  created_at: string | null;
 };
 
 function formatarData(data: string | null) {
@@ -72,6 +98,12 @@ function normalizarTexto(valor: string | null | undefined) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+}
+
+function dataRegistro(valor: string | null | undefined) {
+  if (!valor) return 0;
+  const data = new Date(valor).getTime();
+  return Number.isNaN(data) ? 0 : data;
 }
 
 export default async function AdminPunicoesPage({
@@ -119,16 +151,40 @@ export default async function AdminPunicoesPage({
 
   const { data: contatosData } = await supabase
     .from("inscricoes")
-    .select("id, nome_equipe, nome_time, responsavel_nome, responsavel_telefone");
+    .select(
+      "id, campeonato_id, categoria, serie, nome_equipe, nome_time, responsavel_nome, responsavel_telefone, status, created_at"
+    );
 
   const contatos = (contatosData || []) as InscricaoContato[];
 
+  const { data: jogadoresFichaData } = await supabase
+    .from("inscricao_jogadores")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  const jogadoresFicha = (jogadoresFichaData || []) as InscricaoJogadorFicha[];
+
+  const campeonatoFichaIds = Array.from(
+    new Set(contatos.map((contato) => contato.campeonato_id).filter(Boolean))
+  ) as string[];
+
+  const { data: campeonatosFichaData } =
+    campeonatoFichaIds.length > 0
+      ? await supabase
+          .from("campeonatos")
+          .select("id, nome, modalidade")
+          .in("id", campeonatoFichaIds)
+      : { data: [] };
+
+  const campeonatosFicha = (campeonatosFichaData || []) as Campeonato[];
+
   const campeonatoPorId = new Map(
-    campeonatos.map((c) => [c.id, c])
+    [...campeonatosFicha, ...campeonatos].map((c) => [c.id, c])
   );
 
   const contatoPorEquipeId = new Map(contatos.map((contato) => [contato.id, contato]));
   const contatoPorNomeEquipe = new Map<string, InscricaoContato>();
+  const jogadorPorId = new Map(jogadoresFicha.map((jogador) => [jogador.id, jogador]));
 
   contatos.forEach((contato) => {
     const nomes = [contato.nome_equipe, contato.nome_time];
@@ -137,6 +193,105 @@ export default async function AdminPunicoesPage({
       if (chave) contatoPorNomeEquipe.set(chave, contato);
     });
   });
+
+  async function obterDocumentoAssinado(caminho: string | null) {
+    if (!caminho) return null;
+    if (caminho.startsWith("http://") || caminho.startsWith("https://")) {
+      return caminho;
+    }
+
+    const { data } = await supabase.storage
+      .from("documentos-atletas")
+      .createSignedUrl(caminho, 60 * 60);
+
+    return data?.signedUrl || null;
+  }
+
+  const fichasPorPunicao = new Map<string, AtletaFicha>();
+
+  for (const punicao of punicoes) {
+    const base = punicao.atleta_id ? jogadorPorId.get(punicao.atleta_id) : null;
+    const nomeBase = normalizarNomeAtleta(base?.nome || punicao.atleta_nome);
+    const documentosBase = base ? documentosNormalizadosAtleta(base) : new Set<string>();
+
+    const registros = jogadoresFicha
+      .filter((jogador) => {
+        if (punicao.atleta_id && jogador.id === punicao.atleta_id) return true;
+
+        const mesmoNome =
+          nomeBase && normalizarNomeAtleta(jogador.nome) === nomeBase;
+        const documentosJogador = documentosNormalizadosAtleta(jogador);
+        const mesmoDocumento =
+          documentosBase.size > 0 &&
+          Array.from(documentosJogador).some((documento) =>
+            documentosBase.has(documento)
+          );
+
+        return Boolean(mesmoNome || mesmoDocumento);
+      })
+      .sort((a, b) => dataRegistro(b.created_at) - dataRegistro(a.created_at));
+
+    const ultimoRegistro = registros[0] || base || null;
+    const ultimaInscricao = ultimoRegistro?.inscricao_id
+      ? contatoPorEquipeId.get(ultimoRegistro.inscricao_id)
+      : null;
+    const ultimoCampeonato = ultimaInscricao?.campeonato_id
+      ? campeonatoPorId.get(ultimaInscricao.campeonato_id)
+      : null;
+
+    const historico = registros.map((registro) => {
+      const inscricao = registro.inscricao_id
+        ? contatoPorEquipeId.get(registro.inscricao_id)
+        : null;
+      const campeonato = inscricao?.campeonato_id
+        ? campeonatoPorId.get(inscricao.campeonato_id)
+        : null;
+
+      return {
+        id: registro.id,
+        time:
+          inscricao?.nome_equipe ||
+          inscricao?.nome_time ||
+          punicao.equipe_nome ||
+          "Equipe nao informada",
+        campeonato: campeonato?.nome || "Campeonato nao informado",
+        categoria: inscricao?.categoria || null,
+        serie: inscricao?.serie || null,
+        numeroCamisa: registro.numero_camisa,
+        status: registro.status,
+        dataInscricao: registro.created_at || inscricao?.created_at || null,
+      };
+    });
+
+    const ficha: AtletaFicha = {
+      nome: ultimoRegistro?.nome || punicao.atleta_nome || "Atleta nao informado",
+      documentos: ultimoRegistro
+        ? formatarDocumentoAtleta(ultimoRegistro)
+        : "Documentos nao encontrados",
+      numeroCamisa: ultimoRegistro?.numero_camisa || null,
+      status: ultimoRegistro?.status || null,
+      ultimoTime:
+        ultimaInscricao?.nome_equipe ||
+        ultimaInscricao?.nome_time ||
+        punicao.equipe_nome ||
+        "Equipe nao informada",
+      ultimoCampeonato:
+        ultimoCampeonato?.nome ||
+        (punicao.campeonato_id
+          ? campeonatoPorId.get(punicao.campeonato_id)?.nome
+          : null) ||
+        "Campeonato nao informado",
+      ultimaCategoria: ultimaInscricao?.categoria || punicao.categoria_nome,
+      ultimaSerie: ultimaInscricao?.serie || punicao.serie_nome,
+      ultimaInscricaoEm: ultimoRegistro?.created_at || ultimaInscricao?.created_at || null,
+      ultimoDocumentoUrl: await obterDocumentoAssinado(
+        ultimoRegistro?.documento_arquivo_url || null
+      ),
+      historico,
+    };
+
+    fichasPorPunicao.set(punicao.id, ficha);
+  }
 
   return (
     <div className="space-y-6 text-white">
@@ -283,6 +438,8 @@ export default async function AdminPunicoesPage({
                     </div>
 
                     <div className="mt-4 flex flex-wrap justify-end gap-2">
+                      <AdminAtletaFichaButton ficha={fichasPorPunicao.get(p.id) || null} />
+
                       <AdminPunicaoActions
                         punicao={{
                           id: p.id,
