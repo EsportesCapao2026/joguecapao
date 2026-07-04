@@ -42,6 +42,7 @@ type IntencaoConsulta = {
   sinais: string[];
   artigosPreferidos: string[];
   termosFortes: string[];
+  termosTecnicos: string[];
 };
 
 const INTENCOES_CONSULTA: IntencaoConsulta[] = [
@@ -64,6 +65,21 @@ const INTENCOES_CONSULTA: IntencaoConsulta[] = [
       "atuação irregular",
       "incluiu atleta",
       "incluir atleta",
+      "categoria errada",
+      "categoria irregular",
+      "fora da categoria",
+      "idade errada",
+      "idade irregular",
+      "jogador na categoria errada",
+      "atleta na categoria errada",
+      "jogador que nao podia jogar",
+      "jogador que não podia jogar",
+      "atleta que nao podia jogar",
+      "atleta que não podia jogar",
+      "nao poderia jogar",
+      "não poderia jogar",
+      "nao poderia estar jogando",
+      "não poderia estar jogando",
     ],
     artigosPreferidos: ["214"],
     termosFortes: [
@@ -80,7 +96,75 @@ const INTENCOES_CONSULTA: IntencaoConsulta[] = [
       "condição de jogo",
       "perda de pontos",
     ],
+    termosTecnicos: [
+      "inclusão de atleta irregular",
+      "atuação irregular",
+      "escalação irregular",
+      "atleta sem condição de jogo",
+      "jogador em categoria indevida",
+      "participação de atleta que não poderia atuar",
+    ],
   },
+];
+
+const TERMOS_ATLETA = [
+  "atleta",
+  "jogador",
+  "jogadora",
+  "inscrito",
+  "inscricao",
+  "inscrição",
+  "time",
+  "equipe",
+];
+
+const TERMOS_ATUACAO = [
+  "joga",
+  "jogar",
+  "jogou",
+  "jogando",
+  "atuou",
+  "atuar",
+  "participou",
+  "participar",
+  "disputou",
+  "disputar",
+  "escalado",
+  "escalou",
+  "escalar",
+  "colocou",
+  "entrou",
+];
+
+const TERMOS_IRREGULARIDADE = [
+  "errado",
+  "errada",
+  "irregular",
+  "sem condicao",
+  "sem condição",
+  "nao podia",
+  "não podia",
+  "nao poderia",
+  "não poderia",
+  "nao permitido",
+  "não permitido",
+  "fora",
+  "indevido",
+  "indevida",
+  "impedido",
+  "proibido",
+];
+
+const TERMOS_CATEGORIA = [
+  "categoria",
+  "idade",
+  "faixa etaria",
+  "faixa etária",
+  "sub",
+  "serie",
+  "série",
+  "divisao",
+  "divisão",
 ];
 
 function normalizar(valor: string) {
@@ -104,11 +188,44 @@ function artigoBateNumero(fonte: FonteDuvida, numero: string) {
   return new RegExp(`(^|\\D)${numeroEscapado}(\\D|$)`).test(textoReferencia);
 }
 
+function contemAlgum(textoNormalizado: string, termos: string[]) {
+  return termos.some((termo) => textoNormalizado.includes(normalizar(termo)));
+}
+
+function perguntaIndicaEscalacaoIrregular(textoNormalizado: string) {
+  const temAtleta = contemAlgum(textoNormalizado, TERMOS_ATLETA);
+  const temAtuacao = contemAlgum(textoNormalizado, TERMOS_ATUACAO);
+  const temIrregularidade = contemAlgum(
+    textoNormalizado,
+    TERMOS_IRREGULARIDADE
+  );
+  const temCategoria = contemAlgum(textoNormalizado, TERMOS_CATEGORIA);
+
+  return (
+    contemAlgum(textoNormalizado, [
+      "escal",
+      "atuacao irregular",
+      "atuação irregular",
+      "participacao irregular",
+      "participação irregular",
+      "incluir atleta",
+      "incluiu atleta",
+      "jogador errado",
+      "atleta errado",
+    ]) ||
+    (temAtleta && temAtuacao && temIrregularidade) ||
+    (temAtleta && temCategoria && temIrregularidade) ||
+    (temCategoria && temAtuacao && temIrregularidade)
+  );
+}
+
 function detectarIntencoes(pergunta: string) {
   const texto = normalizar(pergunta);
 
   return INTENCOES_CONSULTA.filter((intencao) =>
-    intencao.sinais.some((sinal) => texto.includes(normalizar(sinal)))
+    intencao.sinais.some((sinal) => texto.includes(normalizar(sinal))) ||
+    (intencao.id === "escalacao_irregular" &&
+      perguntaIndicaEscalacaoIrregular(texto))
   );
 }
 
@@ -121,7 +238,16 @@ function tokensPergunta(pergunta: string) {
   const texto = normalizar(pergunta);
   const extras: string[] = [];
 
-  if (texto.includes("escal") || texto.includes("irregular")) {
+  const intencoes = detectarIntencoes(pergunta);
+  const temEscalacaoIrregular = intencoes.some(
+    (intencao) => intencao.id === "escalacao_irregular"
+  );
+
+  if (
+    texto.includes("escal") ||
+    texto.includes("irregular") ||
+    temEscalacaoIrregular
+  ) {
     extras.push(
       "escalação",
       "irregular",
@@ -130,6 +256,23 @@ function tokensPergunta(pergunta: string) {
       "inclusão",
       "condição",
       "pontos",
+      "214"
+    );
+  }
+
+  if (
+    temEscalacaoIrregular &&
+    (contemAlgum(texto, TERMOS_CATEGORIA) ||
+      texto.includes("categoria") ||
+      texto.includes("idade"))
+  ) {
+    extras.push(
+      "categoria",
+      "idade",
+      "faixa etária",
+      "atleta",
+      "condição de jogo",
+      "inclusão irregular",
       "214"
     );
   }
@@ -168,10 +311,10 @@ function scoreFonte(
     );
 
     if (artigoPreferido) {
-      score += 120;
+      score += 260;
     }
 
-    score += termosEncontrados.length * 8;
+    score += termosEncontrados.length * 10;
 
     if (
       fonte.tipo === "CBJD" &&
@@ -179,7 +322,7 @@ function scoreFonte(
       !artigoPreferido &&
       termosEncontrados.length <= 1
     ) {
-      score -= 18;
+      score -= 45;
     }
   });
 
@@ -266,7 +409,7 @@ function montarRelatorioBase(pergunta: string, fontes: FonteDuvida[]) {
     "Relatório preliminar da consulta",
     "",
     "Resumo:",
-    "Encontrei regras cadastradas que podem servir de base para análise. Como a IA não está configurada neste ambiente, abaixo está um relatório preliminar com as fontes mais próximas da pergunta.",
+    "Encontrei regras cadastradas que podem servir de base para análise. Abaixo está uma leitura inicial das fontes mais próximas da pergunta.",
     "",
     "Pergunta:",
     pergunta,
@@ -292,6 +435,29 @@ function textoDasFontes(fontes: FonteDuvida[]) {
       ].join("\n");
     })
     .join("\n\n");
+}
+
+function textoDasIntencoes(intencoes: IntencaoConsulta[]) {
+  if (intencoes.length === 0) {
+    return "Intenção detectada: consulta geral de regras.";
+  }
+
+  return [
+    "Intenção detectada pelo sistema antes da IA:",
+    ...intencoes.map((intencao) =>
+      [
+        `- ${intencao.nome}`,
+        intencao.artigosPreferidos.length
+          ? `Artigos que devem ser conferidos primeiro: ${intencao.artigosPreferidos.join(", ")}`
+          : "",
+        intencao.termosTecnicos.length
+          ? `Termos técnicos relacionados: ${intencao.termosTecnicos.join(", ")}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    ),
+  ].join("\n");
 }
 
 function combinarArtigos(...listas: CbjdArtigo[][]) {
@@ -401,6 +567,7 @@ export async function responderDuvidaRegras(
     artigosCbjd,
     pergunta
   );
+  const intencoes = detectarIntencoes(pergunta);
 
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -423,9 +590,10 @@ export async function responderDuvidaRegras(
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-5.5",
         instructions:
-          "Você é um assistente público de regras esportivas municipais. Responda em português do Brasil. Use apenas as fontes fornecidas. As fontes chegam em ordem de relevância: priorize as primeiras e descarte artigos que não tratem diretamente do caso perguntado. Se a pergunta for sobre escalação, inclusão ou atuação irregular de atleta, verifique expressamente se há fonte do art. 214 do CBJD antes de citar outro artigo. Se as fontes não forem suficientes, diga claramente que não há base suficiente. Estruture como relatório com: Resumo, Base encontrada, Orientação e Observação. Não invente artigo, pena ou decisão.",
+          "Você é um assistente público de regras esportivas municipais. Responda em português do Brasil. Use apenas as fontes fornecidas. A pessoa pode perguntar com palavras comuns, então traduza o sentido prático da pergunta para o enquadramento técnico mais provável antes de responder. As fontes chegam em ordem de relevância: priorize as primeiras e descarte artigos que não tratem diretamente do caso perguntado. Quando a dúvida envolver jogador em categoria errada, idade errada, atleta que não poderia jogar, atleta não inscrito, escalação, inclusão ou atuação irregular, trate como possível inclusão ou atuação irregular de atleta e confira expressamente o art. 214 do CBJD antes de citar outro artigo. Só cite artigos que tenham relação direta com o fato narrado. Se as fontes não forem suficientes, diga claramente que não há base suficiente. Estruture como relatório com: Resumo, Base encontrada, Orientação e Observação. Não invente artigo, pena ou decisão.",
         input: [
           `Pergunta do usuário:\n${pergunta}`,
+          textoDasIntencoes(intencoes),
           "Fontes permitidas:",
           textoDasFontes(fontes),
         ].join("\n\n"),
