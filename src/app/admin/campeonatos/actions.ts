@@ -132,12 +132,33 @@ function revalidarCampeonato(id?: string) {
   revalidatePath("/admin/jogos");
   revalidatePath("/admin/artilheiros");
   revalidatePath("/admin/punicoes");
+  revalidatePath("/admin/inscricoes");
+  revalidatePath("/admin/clubes-atletas");
+  revalidatePath("/admin/denuncias");
+  revalidatePath("/admin/resultados");
   revalidatePath("/campeonatos");
   revalidatePath("/inscricoes");
   revalidatePath("/denuncias");
+  revalidatePath("/punicoes");
 
   if (id) {
     revalidatePath(`/campeonatos/${id}`);
+  }
+}
+
+type ResultadoOperacao = {
+  error: { message: string } | null;
+};
+
+async function garantirOperacao(
+  operacao: PromiseLike<ResultadoOperacao>,
+  contexto: string
+) {
+  const { error } = await operacao;
+
+  if (error) {
+    console.error(`Erro ao ${contexto}:`, error);
+    redirect(`/admin/campeonatos?erro=${encodeURIComponent(contexto)}&detalhe=${encodeURIComponent(error.message)}`);
   }
 }
 
@@ -213,4 +234,125 @@ export async function alterarStatusCampeonato(formData: FormData) {
   revalidarCampeonato(id);
 
   redirect("/admin/campeonatos?sucesso=status");
+}
+
+export async function excluirCampeonato(formData: FormData) {
+  await exigirAdmin();
+
+  const id = String(formData.get("id") || "").trim();
+
+  if (!id) {
+    redirect("/admin/campeonatos?erro=id");
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: campeonato, error: campeonatoError } = await supabase
+    .from("campeonatos")
+    .select("id, nome")
+    .eq("id", id)
+    .single();
+
+  if (campeonatoError || !campeonato) {
+    console.error("Erro ao buscar campeonato para exclusão:", campeonatoError);
+    redirect("/admin/campeonatos?erro=nao-encontrado");
+  }
+
+  const { data: jogosData } = await supabase
+    .from("jogos")
+    .select("id")
+    .eq("campeonato_id", id);
+
+  const jogoIds = (jogosData || [])
+    .map((jogo) => String(jogo.id || ""))
+    .filter(Boolean);
+
+  const { data: inscricoesData } = await supabase
+    .from("inscricoes")
+    .select("id")
+    .eq("campeonato_id", id);
+
+  const inscricaoIds = (inscricoesData || [])
+    .map((inscricao) => String(inscricao.id || ""))
+    .filter(Boolean);
+
+  await garantirOperacao(
+    supabase.from("gols").delete().eq("campeonato_id", id),
+    "excluir-gols"
+  );
+
+  if (jogoIds.length > 0) {
+    await garantirOperacao(
+      supabase.from("gols").delete().in("jogo_id", jogoIds),
+      "excluir-gols-jogos"
+    );
+  }
+
+  await garantirOperacao(
+    supabase
+      .from("denuncias")
+      .update({
+        campeonato_id: null,
+        jogo_id: null,
+        equipe_denunciada_id: null,
+        atleta_denunciado_id: null,
+      })
+      .eq("campeonato_id", id),
+    "desvincular-denuncias"
+  );
+
+  await garantirOperacao(
+    supabase
+      .from("punicoes")
+      .update({
+        campeonato_id: null,
+        equipe_id: null,
+        atleta_id: null,
+      })
+      .eq("campeonato_id", id),
+    "preservar-punicoes"
+  );
+
+  await garantirOperacao(
+    supabase.from("jogos").delete().eq("campeonato_id", id),
+    "excluir-jogos"
+  );
+
+  await garantirOperacao(
+    supabase.from("atletas").delete().eq("campeonato_id", id),
+    "excluir-atletas"
+  );
+
+  if (inscricaoIds.length > 0) {
+    await garantirOperacao(
+      supabase.from("inscricao_jogadores").delete().in("inscricao_id", inscricaoIds),
+      "excluir-jogadores-inscricao"
+    );
+  }
+
+  await garantirOperacao(
+    supabase.from("equipes").delete().eq("campeonato_id", id),
+    "excluir-equipes"
+  );
+
+  await garantirOperacao(
+    supabase.from("inscricoes").delete().eq("campeonato_id", id),
+    "excluir-inscricoes"
+  );
+
+  if (campeonato.nome) {
+    await garantirOperacao(
+      supabase.from("regras_campeonatos").delete().eq("campeonato_nome", campeonato.nome),
+      "excluir-regras"
+    );
+  }
+
+  await garantirOperacao(
+    supabase.from("campeonatos").delete().eq("id", id),
+    "excluir-campeonato"
+  );
+
+  revalidarCampeonato(id);
+
+  redirect("/admin/campeonatos?sucesso=excluido");
 }

@@ -3,12 +3,15 @@ import { exigirAdmin } from "@/lib/adminAuth";
 import {
   alterarStatusCampeonato,
   cadastrarCampeonato,
+  excluirCampeonato,
 } from "./actions";
 import { AdminCampeonatoEditButton } from "@/components/admin/campeonatos/AdminCampeonatoEditButton";
+import { AdminDeleteSubmitButton } from "@/components/admin/AdminDeleteSubmitButton";
 
 type SearchParams = Promise<{
   sucesso?: string;
   erro?: string;
+  detalhe?: string;
 }>;
 
 type CategoriaConfig = {
@@ -130,6 +133,11 @@ export default async function AdminCampeonatosPage({
         {params.erro && (
           <div className="rounded-3xl border border-red-300/25 bg-red-400/10 p-4 text-sm font-black text-red-100 backdrop-blur">
             Não foi possível concluir a ação. Confira os campos e tente novamente.
+            {params.detalhe && (
+              <span className="mt-2 block text-xs font-bold text-red-50/80">
+                Detalhe: {params.detalhe}
+              </span>
+            )}
           </div>
         )}
 
@@ -445,7 +453,7 @@ export default async function AdminCampeonatosPage({
                       </p>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    <div className="mt-4 grid gap-3 md:grid-cols-5">
                       <AdminCampeonatoEditButton campeonato={campeonato} />
 
                       <form action={alterarStatusCampeonato}>
@@ -479,6 +487,15 @@ export default async function AdminCampeonatosPage({
                         >
                           Encerrar
                         </button>
+                      </form>
+
+                      <form action={excluirCampeonato}>
+                        <input type="hidden" name="id" value={campeonato.id} />
+
+                        <AdminDeleteSubmitButton
+                          label="Excluir"
+                          confirmMessage={`Excluir definitivamente o campeonato "${campeonato.nome}"? Jogos, inscrições, equipes, atletas, gols e regras municipais vinculados serão removidos. Punições e denúncias serão preservadas como histórico, mas sem vínculo direto com o campeonato.`}
+                        />
                       </form>
                     </div>
                   </article>

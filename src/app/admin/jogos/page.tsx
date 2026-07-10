@@ -10,7 +10,8 @@ import { exigirAdmin } from "@/lib/adminAuth";
 import { AdminJogoForm } from "@/components/admin/jogos/AdminJogoForm";
 import { AdminResultadoJogoForm } from "@/components/admin/jogos/AdminResultadoJogoForm";
 import AdminJogoActions from "@/components/admin/jogos/AdminJogoActions";
-import { alterarStatusJogo } from "./actions";
+import { AdminDeleteSubmitButton } from "@/components/admin/AdminDeleteSubmitButton";
+import { alterarStatusJogo, excluirJogo } from "./actions";
 
 type SearchParams = Promise<{
   sucesso?: string;
@@ -333,7 +334,7 @@ export default async function AdminJogosPage({
                       </p>
                     )}
 
-                    <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                    <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
                       <AdminResultadoJogoForm
                         jogo={jogo}
                         atletasMandante={atletas.filter(
@@ -377,6 +378,20 @@ export default async function AdminJogosPage({
                           <XCircle size={16} />
                           Cancelar
                         </button>
+                      </form>
+
+                      <form action={excluirJogo}>
+                        <input type="hidden" name="jogo_id" value={jogo.id} />
+                        <input
+                          type="hidden"
+                          name="campeonato_id"
+                          value={jogo.campeonato_id || ""}
+                        />
+
+                        <AdminDeleteSubmitButton
+                          label="Excluir"
+                          confirmMessage={`Excluir definitivamente o jogo ${jogo.equipe_mandante_nome || "Mandante"} x ${jogo.equipe_visitante_nome || "Visitante"}? Os gols vinculados a esta partida também serão removidos.`}
+                        />
                       </form>
                     </div>
 

@@ -383,3 +383,71 @@ export async function alterarStatusJogo(formData: FormData) {
 
   redirect("/admin/jogos?sucesso=status");
 }
+
+export async function excluirJogo(formData: FormData) {
+  await exigirAdmin();
+
+  const jogoId = String(formData.get("jogo_id") || "").trim();
+  const campeonatoIdForm = String(formData.get("campeonato_id") || "").trim();
+
+  if (!jogoId) {
+    redirect("/admin/jogos?erro=jogo-id");
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: jogo, error: jogoError } = await supabase
+    .from("jogos")
+    .select("id, campeonato_id")
+    .eq("id", jogoId)
+    .single();
+
+  if (jogoError || !jogo) {
+    console.error("Erro ao buscar jogo para exclusão:", jogoError);
+    redirect("/admin/jogos?erro=jogo-nao-encontrado");
+  }
+
+  const campeonatoId = jogo.campeonato_id || campeonatoIdForm;
+
+  const { error: golsError } = await supabase
+    .from("gols")
+    .delete()
+    .eq("jogo_id", jogoId);
+
+  if (golsError) {
+    console.error("Erro ao excluir gols do jogo:", golsError);
+    redirect(`/admin/jogos?erro=excluir-gols&detalhe=${encodeURIComponent(golsError.message)}`);
+  }
+
+  const { error: denunciasError } = await supabase
+    .from("denuncias")
+    .update({ jogo_id: null })
+    .eq("jogo_id", jogoId);
+
+  if (denunciasError) {
+    console.error("Erro ao desvincular denúncias do jogo:", denunciasError);
+    redirect(`/admin/jogos?erro=desvincular-denuncias&detalhe=${encodeURIComponent(denunciasError.message)}`);
+  }
+
+  const { error } = await supabase
+    .from("jogos")
+    .delete()
+    .eq("id", jogoId);
+
+  if (error) {
+    console.error("Erro ao excluir jogo:", error);
+    redirect(`/admin/jogos?erro=excluir-jogo&detalhe=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/jogos");
+  revalidatePath("/admin/resultados");
+  revalidatePath("/admin/artilheiros");
+  revalidatePath("/denuncias");
+
+  if (campeonatoId) {
+    revalidatePath(`/campeonatos/${campeonatoId}`);
+  }
+
+  redirect("/admin/jogos?sucesso=excluido");
+}
