@@ -334,7 +334,7 @@ export default async function AdminJogosPage({
                       </p>
                     )}
 
-                    <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
+                    <div className="mt-5 space-y-4">
                       <AdminResultadoJogoForm
                         jogo={jogo}
                         atletasMandante={atletas.filter(
@@ -345,54 +345,56 @@ export default async function AdminJogosPage({
                         )}
                       />
 
-                      <form action={alterarStatusJogo}>
-                        <input type="hidden" name="jogo_id" value={jogo.id} />
-                        <input
-                          type="hidden"
-                          name="campeonato_id"
-                          value={jogo.campeonato_id || ""}
-                        />
-                        <input type="hidden" name="status" value="adiado" />
+                      <div className="grid gap-3 sm:grid-cols-3 lg:ml-auto lg:max-w-xl">
+                        <form action={alterarStatusJogo}>
+                          <input type="hidden" name="jogo_id" value={jogo.id} />
+                          <input
+                            type="hidden"
+                            name="campeonato_id"
+                            value={jogo.campeonato_id || ""}
+                          />
+                          <input type="hidden" name="status" value="adiado" />
 
-                        <button
-                          type="submit"
-                          className="w-full rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-yellow-100"
-                        >
-                          Adiar
-                        </button>
-                      </form>
+                          <button
+                            type="submit"
+                            className="w-full rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-yellow-100"
+                          >
+                            Adiar
+                          </button>
+                        </form>
 
-                      <form action={alterarStatusJogo}>
-                        <input type="hidden" name="jogo_id" value={jogo.id} />
-                        <input
-                          type="hidden"
-                          name="campeonato_id"
-                          value={jogo.campeonato_id || ""}
-                        />
-                        <input type="hidden" name="status" value="cancelado" />
+                        <form action={alterarStatusJogo}>
+                          <input type="hidden" name="jogo_id" value={jogo.id} />
+                          <input
+                            type="hidden"
+                            name="campeonato_id"
+                            value={jogo.campeonato_id || ""}
+                          />
+                          <input type="hidden" name="status" value="cancelado" />
 
-                        <button
-                          type="submit"
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-300/30 bg-red-500/10 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-red-100"
-                        >
-                          <XCircle size={16} />
-                          Cancelar
-                        </button>
-                      </form>
+                          <button
+                            type="submit"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-300/30 bg-red-500/10 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-red-100"
+                          >
+                            <XCircle size={16} />
+                            Cancelar
+                          </button>
+                        </form>
 
-                      <form action={excluirJogo}>
-                        <input type="hidden" name="jogo_id" value={jogo.id} />
-                        <input
-                          type="hidden"
-                          name="campeonato_id"
-                          value={jogo.campeonato_id || ""}
-                        />
+                        <form action={excluirJogo}>
+                          <input type="hidden" name="jogo_id" value={jogo.id} />
+                          <input
+                            type="hidden"
+                            name="campeonato_id"
+                            value={jogo.campeonato_id || ""}
+                          />
 
-                        <AdminDeleteSubmitButton
-                          label="Excluir"
-                          confirmMessage={`Excluir definitivamente o jogo ${jogo.equipe_mandante_nome || "Mandante"} x ${jogo.equipe_visitante_nome || "Visitante"}? Os gols vinculados a esta partida também serão removidos.`}
-                        />
-                      </form>
+                          <AdminDeleteSubmitButton
+                            label="Excluir"
+                            confirmMessage={`Excluir definitivamente o jogo ${jogo.equipe_mandante_nome || "Mandante"} x ${jogo.equipe_visitante_nome || "Visitante"}? Os gols vinculados a esta partida também serão removidos.`}
+                          />
+                        </form>
+                      </div>
                     </div>
 
                     <AdminJogoActions

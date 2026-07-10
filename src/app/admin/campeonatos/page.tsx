@@ -453,7 +453,7 @@ export default async function AdminCampeonatosPage({
                       </p>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-5">
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       <AdminCampeonatoEditButton campeonato={campeonato} />
 
                       <form action={alterarStatusCampeonato}>
